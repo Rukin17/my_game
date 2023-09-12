@@ -4,6 +4,7 @@ import pygame
 from pygame.sprite import Group, spritecollide
 
 from game import GameObject
+from labirinth_template import gameboard
 
 
 
@@ -38,13 +39,31 @@ def calculate_walls_coordinates(screen_width, screen_height, wall_block_width, w
     return walls_coordinates
 
 
+def create_labyrinth_coordinates(screen, width, height):
+    """ Функция задает координаты для лабиринта из шаблона 'labirinth_template.gameboard' """
+    list_1 = []
+    for i in range(len(gameboard)):
+        for j in range(len(gameboard[i - 1])):
+            if gameboard[i][j] == 1:
+                x = j * width
+                y = i * height
+                list_1.extend([(x, y)])
+
+    return list_1
+
+
 def compose_context(screen):
     walls_coordinates = calculate_walls_coordinates(screen.get_width(), screen.get_height(), Walls.width, Walls.height)
-    return {
+    
+    obj =  {
         "player": Player(screen.get_width() // 2, screen.get_height() // 2),
         "walls": Group(*[Walls(x, y) for (x, y) in walls_coordinates]),
-        "skeleton": Skeleton(100, 100),
+        "skeleton": Skeleton(40, 40),
     }
+    lst = create_labyrinth_coordinates(screen, Walls.width, Walls.height)    # добавляет список координатов для стен лабиринта
+    for i in lst:
+        obj[f'walls{lst.index(i)}'] = Walls(*i)
+    return obj
 
 
 def draw_whole_screen(screen, context):
@@ -53,6 +72,10 @@ def draw_whole_screen(screen, context):
     context["walls"].draw(screen)
     context["skeleton"].draw(screen)
     
+    for i in range(len(context) - 3):      # рисует стены лабиринта
+        context[f'walls{i}'].draw(screen)
+    
+
 
 
 
@@ -87,6 +110,11 @@ def main():
 
         if spritecollide(context["player"], context["walls"], dokill=False):
             context["player"].rect.topleft = old_player_topleft
+
+        for i in range(len(context) - 3):
+            if context["player"].is_collided_with(context[f"walls{i}"]):
+                # обрабатываем столкновения с препятствиями
+                context["player"].rect.topleft = old_player_topleft
 
         if context["player"].is_collided_with(context["skeleton"]):
             context["skeleton"].rect.topleft = (
